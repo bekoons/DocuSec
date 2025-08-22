@@ -5,3 +5,6 @@ langchain
 python-docx
 PyMuPDF
 pandas
+fastapi
+uvicorn
+requests
