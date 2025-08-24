@@ -53,7 +53,7 @@ docusec/
 3. To run the app:
 
 ```bash
-streamlit run app/main.py
+PYTHONPATH=$(pwd) streamlit run app/main.py
 ```
 
 ---
