@@ -43,7 +43,10 @@ async def query_rag(question: str) -> dict:
     """Query the RAG pipeline for an answer."""
     if rag_chain is None:
         return {"error": "RAG pipeline not initialized"}
-    answer = answer_query(rag_chain, question)
+    try:
+        answer = answer_query(rag_chain, question)
+    except Exception as err:
+        return {"error": str(err)}
     return {"answer": answer}
 
 

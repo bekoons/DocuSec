@@ -38,8 +38,11 @@ elif page == "Interrogate Policy":
     else:
         question = st.text_input("Enter your question")
         if question:
-            answer = answer_query(st.session_state.rag_chain, question)
-            st.write(answer)
+            try:
+                answer = answer_query(st.session_state.rag_chain, question)
+                st.write(answer)
+            except Exception as err:
+                st.error(f"Failed to generate answer: {err}")
 
 elif page == "Control Frameworks":
     st.header("Loaded Frameworks")
