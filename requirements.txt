@@ -5,3 +5,5 @@ langchain
 python-docx
 PyMuPDF
 pandas
+langchain-community
+fastapi
