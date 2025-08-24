@@ -19,9 +19,9 @@ if "frameworks" not in st.session_state:
 st.title("DocuSec")
 
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Ingest Document", "Ask Question", "Frameworks", "Map Controls"])
+page = st.sidebar.radio("Go to", ["Ingest Policy Document", "Interrogate Policy", "Control Frameworks", "Map Controls"])
 
-if page == "Ingest Document":
+if page == "Ingest Policy Document":
     st.header("Upload Document")
     uploaded_file = st.file_uploader("Upload a document", type=["pdf", "docx", "txt"])
     if uploaded_file is not None:
@@ -31,7 +31,7 @@ if page == "Ingest Document":
         st.session_state.rag_chain = build_rag(st.session_state.vectorstore)
         st.success(f"Document ingested with {len(chunks)} chunks.")
 
-elif page == "Ask Question":
+elif page == "Interrogate Policy":
     st.header("Ask a Question")
     if st.session_state.rag_chain is None:
         st.info("Please ingest a document first.")
@@ -41,7 +41,7 @@ elif page == "Ask Question":
             answer = answer_query(st.session_state.rag_chain, question)
             st.write(answer)
 
-elif page == "Frameworks":
+elif page == "Control Frameworks":
     st.header("Loaded Frameworks")
     st.json(st.session_state.frameworks)
 
