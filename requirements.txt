@@ -7,3 +7,4 @@ PyMuPDF
 pandas
 langchain-community
 fastapi
+tiktoken
