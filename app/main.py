@@ -1,7 +1,12 @@
 import streamlit as st
 import pandas as pd
 from ingestion import read_file, chunk_document
-from embeddings import embed_and_store
+from embeddings import (
+    embed_and_store,
+    save_vectorstore,
+    list_vectorstores,
+    load_vectorstore,
+)
 from rag_pipeline import build_rag, answer_query
 from framework_loader import load_frameworks
 from control_mapper import check_framework_coverage
@@ -34,12 +39,16 @@ page = st.sidebar.radio(
 if page == "Ingest Policy Document":
     st.header("Upload Document")
     uploaded_file = st.file_uploader("Upload a document", type=["pdf", "docx", "txt"])
-    if uploaded_file is not None:
+    policy_name = st.text_input("Policy name")
+    if uploaded_file is not None and policy_name and st.button("Ingest"):
         text = read_file(uploaded_file.read())
         chunks, metadatas = chunk_document(text)
         st.session_state.vectorstore = embed_and_store(chunks, metadatas)
+        save_vectorstore(st.session_state.vectorstore, policy_name)
         st.session_state.rag_chain = build_rag(st.session_state.vectorstore)
-        st.success(f"Document ingested with {len(chunks)} chunks.")
+        st.success(
+            f"Document ingested with {len(chunks)} chunks and saved as '{policy_name}'."
+        )
 
 elif page == "Interrogate Policy":
     st.header("Ask a Question")
@@ -75,19 +84,20 @@ elif page == "Framework Coverage":
     st.header("Framework Coverage")
     controls = fetch_controls()
     frameworks = sorted({c["framework_title"] for c in controls})
+    policies = list_vectorstores()
     if not frameworks:
         st.info("No frameworks available. Upload a framework CSV first.")
-    elif st.session_state.vectorstore is None:
-        st.info("Please ingest a policy document first.")
+    elif not policies:
+        st.info("No stored policies found. Ingest a policy first.")
     else:
+        policy_choice = st.selectbox("Select a policy", policies)
         selected = st.selectbox("Select a framework", frameworks)
         if st.button("Check coverage"):
+            vectorstore = load_vectorstore(policy_choice)
             selected_controls = [
                 c for c in controls if c["framework_title"] == selected
             ]
-            coverage = check_framework_coverage(
-                st.session_state.vectorstore, selected_controls
-            )
+            coverage = check_framework_coverage(vectorstore, selected_controls)
             if coverage:
                 table_data = [
                     {
