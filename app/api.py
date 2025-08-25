@@ -1,5 +1,6 @@
 import os
 import time
+from fastapi.responses import HTMLResponse
 from typing import List
 
 from fastapi import (
@@ -23,6 +24,13 @@ from .control_mapper import map_controls as perform_control_mapping
 from .ui import upload_form
 from . import utils
 from .validation import validate_input
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "text/plain",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
 
 app = FastAPI(title="DocuSec API")
 
@@ -91,11 +99,19 @@ async def ingest_document(
 ) -> dict:
     """Upload a document, chunk it, embed it and build the RAG pipeline."""
     global vectorstore, rag_chain
-    text = read_file(await file.read())
+
+    if file.content_type not in ALLOWED_MIME_TYPES:
+        raise HTTPException(status_code=400, detail="Unsupported file type.")
+
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Limit 10MB.")
+
+    text = read_file(contents)
     try:
         validate_input(text)
     except ValueError as err:
-        return {"error": str(err)}
+        raise HTTPException(status_code=400, detail=str(err))
     chunks, metadatas = chunk_document(text)
     vectorstore = embed_and_store(chunks, metadatas)
     rag_chain = build_rag(vectorstore)

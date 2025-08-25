@@ -9,8 +9,9 @@ fastapi_stub = types.ModuleType("fastapi")
 
 
 class UploadFile:
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes, content_type: str = "text/plain"):
         self._data = data
+        self.content_type = content_type
 
     async def read(self) -> bytes:  # noqa: D401
         return self._data
@@ -43,7 +44,6 @@ class FastAPI:
 fastapi_stub.FastAPI = FastAPI
 fastapi_stub.UploadFile = UploadFile
 fastapi_stub.File = File
-
 
 def Depends(dependency):  # noqa: D401, ANN001
     return dependency
@@ -79,6 +79,7 @@ fastapi_stub.Depends = Depends
 fastapi_stub.HTTPException = HTTPException
 fastapi_stub.status = status_stub
 sys.modules["fastapi.status"] = status_stub
+
 responses_stub = types.ModuleType("fastapi.responses")
 responses_stub.HTMLResponse = str
 sys.modules["fastapi"] = fastapi_stub

@@ -11,10 +11,17 @@ from app.rag_pipeline import build_rag, answer_query
 from app.framework_loader import load_frameworks
 from app.control_mapper import check_framework_coverage
 from app.db import fetch_controls, store_csv_in_db
-from app.validation import validate_input
+from app.validation import validate_input, validate_policy_name
 
 # Streamlit frontend reusing core FastAPI logic
 # This app leverages existing ingestion, RAG, and control mapping functions.
+
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "text/plain",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
 
 # Initialize session state
 if "vectorstore" not in st.session_state:
@@ -42,19 +49,24 @@ if page == "Ingest Policy Document":
     uploaded_file = st.file_uploader("Upload a document", type=["pdf", "docx", "txt"])
     policy_name = st.text_input("Policy name")
     if uploaded_file is not None and policy_name and st.button("Ingest"):
-        text = read_file(uploaded_file.read())
-        try:
-            validate_input(text)
-        except ValueError as err:
-            st.error(str(err))
+        if uploaded_file.type not in ALLOWED_MIME_TYPES:
+            st.error("Unsupported file type.")
+        elif uploaded_file.size > MAX_FILE_SIZE:
+            st.error("File too large. Limit 10MB.")
         else:
-            chunks, metadatas = chunk_document(text)
-            st.session_state.vectorstore = embed_and_store(chunks, metadatas)
-            save_vectorstore(st.session_state.vectorstore, policy_name)
-            st.session_state.rag_chain = build_rag(st.session_state.vectorstore)
-            st.success(
-                f"Document ingested with {len(chunks)} chunks and saved as '{policy_name}'."
-            )
+            text = read_file(uploaded_file.read())
+            try:
+                validate_input(text)
+            except ValueError as err:
+                st.error(str(err))
+            else:
+                chunks, metadatas = chunk_document(text)
+                st.session_state.vectorstore = embed_and_store(chunks, metadatas)
+                save_vectorstore(st.session_state.vectorstore, policy_name)
+                st.session_state.rag_chain = build_rag(st.session_state.vectorstore)
+                st.success(
+                    f"Document ingested with {len(chunks)} chunks and saved as '{policy_name}'."
+                )
 
 elif page == "Interrogate Policy":
     st.header("Ask a Question")
@@ -80,13 +92,18 @@ elif page == "Control Frameworks":
         "Upload a framework CSV", type=["csv"]
     )
     if uploaded_csv is not None and st.button("Upload CSV"):
-        try:
-            count = store_csv_in_db(uploaded_csv.getvalue())
-            st.success(f"Stored {count} controls.")
-        except ValueError as err:
-            st.warning(str(err))
-        except Exception as err:
-            st.error(f"Failed to process CSV: {err}")
+        if uploaded_csv.type != "text/csv":
+            st.error("Unsupported file type.")
+        elif uploaded_csv.size > MAX_FILE_SIZE:
+            st.error("File too large. Limit 10MB.")
+        else:
+            try:
+                count = store_csv_in_db(uploaded_csv.getvalue())
+                st.success(f"Stored {count} controls.")
+            except ValueError as err:
+                st.warning(str(err))
+            except Exception as err:
+                st.error(f"Failed to process CSV: {err}")
         st.json(fetch_controls())
 
 elif page == "Framework Coverage":

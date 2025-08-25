@@ -47,7 +47,8 @@ def save_vectorstore(
         base_dir: Directory where policy vector stores are maintained.
     """
 
-    path = Path(base_dir) / name
+    safe_name = Path(name).name
+    path = Path(base_dir) / safe_name
     path.mkdir(parents=True, exist_ok=True)
     vectorstore.save_local(str(path))
 
@@ -68,9 +69,12 @@ def load_vectorstore(name: str, base_dir: Path | str = VECTORSTORE_DIR):
         raise ImportError(
             "LangChain community embeddings/vectorstores are unavailable"
         )
-    path = Path(base_dir) / name
+    safe_name = Path(name).name
+    path = Path(base_dir) / safe_name
     embeddings = OpenAIEmbeddings()
+    # Explicitly disable dangerous deserialization to avoid executing
+    # arbitrary code when loading persisted vector stores.
     return FAISS.load_local(
-        str(path), embeddings, allow_dangerous_deserialization=True
+        str(path), embeddings, allow_dangerous_deserialization=False
     )
 
