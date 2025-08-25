@@ -9,6 +9,7 @@ from .framework_loader import load_frameworks
 from .control_mapper import map_controls as perform_control_mapping
 from .ui import upload_form
 from . import utils
+from .validation import validate_input
 
 app = FastAPI(title="DocuSec API")
 
@@ -31,6 +32,10 @@ async def ingest_document(file: UploadFile = File(...)) -> dict:
     """Upload a document, chunk it, embed it and build the RAG pipeline."""
     global vectorstore, rag_chain
     text = read_file(await file.read())
+    try:
+        validate_input(text)
+    except ValueError as err:
+        return {"error": str(err)}
     chunks, metadatas = chunk_document(text)
     vectorstore = embed_and_store(chunks, metadatas)
     rag_chain = build_rag(vectorstore)
@@ -44,6 +49,7 @@ async def query_rag(question: str) -> dict:
     if rag_chain is None:
         return {"error": "RAG pipeline not initialized"}
     try:
+        validate_input(question)
         answer = answer_query(rag_chain, question)
     except Exception as err:
         return {"error": str(err)}

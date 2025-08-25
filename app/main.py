@@ -11,6 +11,7 @@ from rag_pipeline import build_rag, answer_query
 from framework_loader import load_frameworks
 from control_mapper import check_framework_coverage
 from db import fetch_controls, store_csv_in_db
+from validation import validate_input
 
 # Streamlit frontend reusing core FastAPI logic
 # This app leverages existing ingestion, RAG, and control mapping functions.
@@ -42,13 +43,18 @@ if page == "Ingest Policy Document":
     policy_name = st.text_input("Policy name")
     if uploaded_file is not None and policy_name and st.button("Ingest"):
         text = read_file(uploaded_file.read())
-        chunks, metadatas = chunk_document(text)
-        st.session_state.vectorstore = embed_and_store(chunks, metadatas)
-        save_vectorstore(st.session_state.vectorstore, policy_name)
-        st.session_state.rag_chain = build_rag(st.session_state.vectorstore)
-        st.success(
-            f"Document ingested with {len(chunks)} chunks and saved as '{policy_name}'."
-        )
+        try:
+            validate_input(text)
+        except ValueError as err:
+            st.error(str(err))
+        else:
+            chunks, metadatas = chunk_document(text)
+            st.session_state.vectorstore = embed_and_store(chunks, metadatas)
+            save_vectorstore(st.session_state.vectorstore, policy_name)
+            st.session_state.rag_chain = build_rag(st.session_state.vectorstore)
+            st.success(
+                f"Document ingested with {len(chunks)} chunks and saved as '{policy_name}'."
+            )
 
 elif page == "Interrogate Policy":
     st.header("Ask a Question")
@@ -58,8 +64,11 @@ elif page == "Interrogate Policy":
         question = st.text_input("Enter your question")
         if question:
             try:
+                validate_input(question)
                 answer = answer_query(st.session_state.rag_chain, question)
                 st.write(answer)
+            except ValueError as err:
+                st.warning(str(err))
             except Exception as err:
                 st.error(f"Failed to generate answer: {err}")
 
