@@ -11,7 +11,7 @@ from app.rag_pipeline import build_rag, answer_query
 from app.framework_loader import load_frameworks
 from app.control_mapper import check_framework_coverage
 from app.db import fetch_controls, store_csv_in_db
-from app.validation import validate_input
+from app.validation import validate_input, validate_policy_name
 
 # Streamlit frontend reusing core FastAPI logic
 # This app leverages existing ingestion, RAG, and control mapping functions.
@@ -42,8 +42,9 @@ if page == "Ingest Policy Document":
     uploaded_file = st.file_uploader("Upload a document", type=["pdf", "docx", "txt"])
     policy_name = st.text_input("Policy name")
     if uploaded_file is not None and policy_name and st.button("Ingest"):
-        text = read_file(uploaded_file.read())
         try:
+            validate_policy_name(policy_name)
+            text = read_file(uploaded_file.read())
             validate_input(text)
         except ValueError as err:
             st.error(str(err))
