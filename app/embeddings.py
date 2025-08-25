@@ -70,7 +70,9 @@ def load_vectorstore(name: str, base_dir: Path | str = VECTORSTORE_DIR):
         )
     path = Path(base_dir) / name
     embeddings = OpenAIEmbeddings()
+    # Explicitly disable dangerous deserialization to avoid executing
+    # arbitrary code when loading persisted vector stores.
     return FAISS.load_local(
-        str(path), embeddings, allow_dangerous_deserialization=True
+        str(path), embeddings, allow_dangerous_deserialization=False
     )
 
