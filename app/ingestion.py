@@ -5,9 +5,29 @@ from typing import Callable, Dict, List, Tuple
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import re
 
+try:  # pragma: no cover - optional dependency
+    from charset_normalizer import from_bytes
+except Exception:  # pragma: no cover - library may be absent
+    from_bytes = None
+
 
 def read_file(data: bytes) -> str:
-    """Decode raw file bytes into text."""
+    """Decode raw file bytes into text using detected encoding.
+
+    The function attempts to detect the correct encoding of ``data`` using
+    :mod:`charset_normalizer`.  If detection fails or the library is not
+    available, the bytes are decoded as UTF-8 with errors ignored.  The
+    resulting string is always valid Unicode suitable for storing in the
+    vector store.
+    """
+
+    if from_bytes is not None:
+        try:
+            result = from_bytes(data).best()
+            if result is not None:
+                return str(result)
+        except Exception:
+            pass
     return data.decode("utf-8", errors="ignore")
 
 
