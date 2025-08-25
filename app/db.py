@@ -78,16 +78,20 @@ def store_csv_in_db(file_bytes: bytes, db_path: str = DB_PATH) -> int:
     Returns:
         Number of controls stored.
     """
-    reader = csv.DictReader(io.StringIO(file_bytes.decode("utf-8")))
-    rows: List[Dict[str, str]] = []
+    reader = csv.DictReader(io.StringIO(file_bytes.decode("utf-8-sig")))
     required = {"framework_title", "control_number", "control_language"}
+    headers = set(reader.fieldnames or [])
+    if not required.issubset(headers):
+        expected = ", ".join(sorted(required))
+        raise ValueError(f"CSV headers must include: {expected}")
+
+    rows: List[Dict[str, str]] = []
     for row in reader:
-        if required.issubset(row.keys()):
-            rows.append(
-                {
-                    "framework_title": row["framework_title"],
-                    "control_number": row["control_number"],
-                    "control_language": row["control_language"],
-                }
-            )
+        rows.append(
+            {
+                "framework_title": row["framework_title"],
+                "control_number": row["control_number"],
+                "control_language": row["control_language"],
+            }
+        )
     return insert_controls(rows, db_path=db_path)

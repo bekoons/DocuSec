@@ -56,6 +56,8 @@ elif page == "Control Frameworks":
         try:
             count = store_csv_in_db(uploaded_csv.getvalue())
             st.success(f"Stored {count} controls.")
+        except ValueError as err:
+            st.warning(str(err))
         except Exception as err:
             st.error(f"Failed to process CSV: {err}")
         st.json(fetch_controls())
