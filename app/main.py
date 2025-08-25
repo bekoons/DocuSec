@@ -1,9 +1,10 @@
 import streamlit as st
+import pandas as pd
 from ingestion import read_file, chunk_document
 from embeddings import embed_and_store
 from rag_pipeline import build_rag, answer_query
 from framework_loader import load_frameworks
-from control_mapper import map_controls as perform_control_mapping
+from control_mapper import check_framework_coverage
 from db import fetch_controls, store_csv_in_db
 
 # Streamlit frontend reusing core FastAPI logic
@@ -20,7 +21,15 @@ if "frameworks" not in st.session_state:
 st.title("DocuSec")
 
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Ingest Policy Document", "Interrogate Policy", "Control Frameworks", "Map Controls"])
+page = st.sidebar.radio(
+    "Go to",
+    [
+        "Ingest Policy Document",
+        "Interrogate Policy",
+        "Control Frameworks",
+        "Framework Coverage",
+    ],
+)
 
 if page == "Ingest Policy Document":
     st.header("Upload Document")
@@ -62,12 +71,33 @@ elif page == "Control Frameworks":
             st.error(f"Failed to process CSV: {err}")
         st.json(fetch_controls())
 
-elif page == "Map Controls":
-    st.header("Map Text to Framework Controls")
-    text_input = st.text_area("Enter text to map to controls")
-    if st.button("Map Controls"):
-        if text_input:
-            mapping = perform_control_mapping(st.session_state.frameworks, [text_input])
-            st.json(mapping)
-        else:
-            st.warning("Please provide text to map.")
+elif page == "Framework Coverage":
+    st.header("Framework Coverage")
+    controls = fetch_controls()
+    frameworks = sorted({c["framework_title"] for c in controls})
+    if not frameworks:
+        st.info("No frameworks available. Upload a framework CSV first.")
+    elif st.session_state.vectorstore is None:
+        st.info("Please ingest a policy document first.")
+    else:
+        selected = st.selectbox("Select a framework", frameworks)
+        if st.button("Check coverage"):
+            selected_controls = [
+                c for c in controls if c["framework_title"] == selected
+            ]
+            coverage = check_framework_coverage(
+                st.session_state.vectorstore, selected_controls
+            )
+            if coverage:
+                table_data = [
+                    {
+                        "Framework": c["framework_title"],
+                        "Control Number": c["control_number"],
+                        "Control Text": c["control_language"],
+                        "Policy Excerpts": "\n\n".join(c["policy_excerpts"]),
+                    }
+                    for c in coverage
+                ]
+                st.table(pd.DataFrame(table_data))
+            else:
+                st.info("No controls found for selected framework.")
