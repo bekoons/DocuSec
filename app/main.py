@@ -11,7 +11,7 @@ from app.rag_pipeline import build_rag, answer_query
 from app.framework_loader import load_frameworks
 from app.control_mapper import check_framework_coverage
 from app.db import fetch_controls, store_csv_in_db
-from app.validation import validate_input
+from app.validation import validate_input, validate_policy_name
 
 # Streamlit frontend reusing core FastAPI logic
 # This app leverages existing ingestion, RAG, and control mapping functions.
