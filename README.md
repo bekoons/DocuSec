@@ -56,7 +56,8 @@ docusec/
 ## 💻 Getting Started in Codespaces
 
 1. Clone the repo
-2. Create secrets for the OpenAI API Key and Langchain API Key.
+2. In **GitHub Codespaces**, create secrets `OPENAI_API_KEY`, `LANGCHAIN_API_KEY`,
+   and `LANGSMITH_API_KEY` for API access and authentication.
 3. Open the repo in **GitHub Codespaces**
 4. The environment will auto-install dependencies from `requirements.txt`
 5. Run the Streamlit interface:
@@ -70,6 +71,25 @@ PYTHONPATH=$(pwd) streamlit run app/main.py
 ```bash
 PYTHONPATH=$(pwd) uvicorn app.api:app --reload
 ```
+
+### 🔐 Authentication
+
+The API expects the `LANGCHAIN_API_KEY` secret for authentication. Codespaces
+exposes this secret as an environment variable, so include its value in the
+`X-API-Key` header when calling protected endpoints (`/ingest`, `/query`,
+`/map_controls`).
+
+```bash
+PYTHONPATH=$(pwd) uvicorn app.api:app --reload
+```
+
+Example request:
+
+```bash
+curl -H "X-API-Key: $LANGCHAIN_API_KEY" -F "file=@doc.txt" http://localhost:8000/ingest
+```
+
+The application also includes a basic in-memory rate limiter allowing roughly 60 requests per minute per client.
 
 ---
 
