@@ -1,17 +1,17 @@
 import streamlit as st
 import pandas as pd
-from ingestion import read_file, chunk_document
-from embeddings import (
+from app.ingestion import read_file, chunk_document
+from app.embeddings import (
     embed_and_store,
     save_vectorstore,
     list_vectorstores,
     load_vectorstore,
 )
-from rag_pipeline import build_rag, answer_query
-from framework_loader import load_frameworks
-from control_mapper import check_framework_coverage
-from db import fetch_controls, store_csv_in_db
-from validation import validate_input
+from app.rag_pipeline import build_rag, answer_query
+from app.framework_loader import load_frameworks
+from app.control_mapper import check_framework_coverage
+from app.db import fetch_controls, store_csv_in_db
+from app.validation import validate_input
 
 # Streamlit frontend reusing core FastAPI logic
 # This app leverages existing ingestion, RAG, and control mapping functions.
