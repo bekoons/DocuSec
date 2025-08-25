@@ -8,3 +8,4 @@ pandas
 langchain-community
 fastapi
 tiktoken
+langsmith

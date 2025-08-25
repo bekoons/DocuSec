@@ -1,6 +1,7 @@
 """Utilities for building and querying a Retrieval Augmented Generation chain."""
 
 from langchain.chains import RetrievalQA
+from .utils import trace
 
 # ChatOpenAI lives in the ``langchain_community`` package.  In minimal
 # environments this dependency may be missing, so we fall back to a very small
@@ -31,5 +32,6 @@ def build_rag(vectorstore):
 
 def answer_query(chain, question: str) -> str:
     """Run a query through the RAG chain."""
-    return chain.run(question)
+    with trace("rag_pipeline.answer_query", inputs={"question": question}):
+        return chain.run(question)
 
