@@ -25,16 +25,27 @@ def test_save_vectorstore_sanitizes_name(tmp_path: Path):
 
 def test_load_vectorstore_sanitizes_name(tmp_path: Path, monkeypatch):
     class DummyFAISS:
+        def __init__(self, embeddings, index, docstore, index_to_docstore_id):
+            self.args = (embeddings, index, docstore, index_to_docstore_id)
+
+    class DummyFaissModule:
         @staticmethod
-        def load_local(path, embeddings, allow_dangerous_deserialization=True):
-            DummyFAISS.path = path
-            return "loaded"
+        def read_index(path):
+            DummyFaissModule.path = path
+            return "index"
 
     monkeypatch.setattr(emb, "FAISS", DummyFAISS)
-    monkeypatch.setattr(emb, "OpenAIEmbeddings", lambda: None)
+    monkeypatch.setattr(emb, "faiss", DummyFaissModule)
+    monkeypatch.setattr(emb, "OpenAIEmbeddings", lambda: "emb")
+    monkeypatch.setattr(emb, "_safe_load_vectorstore_data", lambda f: ("doc", {}))
+
+    target = tmp_path / "PolicyC"
+    target.mkdir()
+    (target / "index.pkl").write_bytes(b"0")
+
     result = emb.load_vectorstore("../PolicyC", base_dir=tmp_path)
-    assert result == "loaded"
-    assert DummyFAISS.path == str(tmp_path / "PolicyC")
+    assert isinstance(result, DummyFAISS)
+    assert DummyFaissModule.path == str(target / "index.faiss")
 
 
 def test_validate_policy_name_valid_and_invalid():

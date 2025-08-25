@@ -2,8 +2,8 @@ import re
 
 # Patterns that indicate potential prompt/SQL/code injection
 _PROHIBITED_PATTERNS = {
-    #"SQL keywords": r"(?i)\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|TRUNCATE|UNION|EXECUTE|EXEC)\b",
-    #"SQL comment": r"(--|/\*|\*/)",
+    "SQL keywords": r"(?i)\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|TRUNCATE|UNION|EXECUTE|EXEC)\b",
+    "SQL comment": r"(--|/\*|\*/)",
     "Script tag": r"(?i)<script.*?>.*?</script>",
     "Executable code": r"(?i)\b(import|exec|eval|subprocess|os\.system|os\.popen)\b",
 }
