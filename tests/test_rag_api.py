@@ -1,3 +1,4 @@
+import os
 import sys
 import types
 import asyncio
@@ -30,6 +31,9 @@ class FastAPI:
 
         return decorator
 
+    def add_middleware(self, *args, **kwargs):  # noqa: D401, ANN001
+        pass
+
     def post(self, *_args, **_kwargs):  # noqa: D401, ANN001
         def decorator(func):
             return func
@@ -40,13 +44,42 @@ class FastAPI:
 fastapi_stub.FastAPI = FastAPI
 fastapi_stub.UploadFile = UploadFile
 fastapi_stub.File = File
-class HTTPException(Exception):
-    def __init__(self, status_code: int, detail: str):  # noqa: D401, ANN001
-        super().__init__(detail)
+
+def Depends(dependency):  # noqa: D401, ANN001
+    return dependency
+
+
+class HTTPException(Exception):  # noqa: D401
+    def __init__(self, status_code: int, detail: str):  # noqa: D401, ANN401
         self.status_code = status_code
         self.detail = detail
 
+
+status_stub = types.ModuleType("status")
+status_stub.HTTP_401_UNAUTHORIZED = 401
+
+
+security_stub = types.ModuleType("fastapi.security")
+
+
+class APIKeyHeader:  # noqa: D401
+    def __init__(self, name: str, auto_error: bool = True):  # noqa: D401, ANN401
+        self.name = name
+        self.auto_error = auto_error
+
+    async def __call__(self):  # noqa: D401
+        return "test"
+
+
+security_stub.APIKeyHeader = APIKeyHeader
+
+sys.modules["fastapi.security"] = security_stub
+
+fastapi_stub.Depends = Depends
 fastapi_stub.HTTPException = HTTPException
+fastapi_stub.status = status_stub
+sys.modules["fastapi.status"] = status_stub
+
 responses_stub = types.ModuleType("fastapi.responses")
 responses_stub.HTMLResponse = str
 sys.modules["fastapi"] = fastapi_stub
@@ -54,6 +87,8 @@ sys.modules["fastapi.responses"] = responses_stub
 
 # Make application code importable
 sys.path.append(str(Path(__file__).resolve().parent.parent))
+# Configure expected secret for API authentication
+os.environ.setdefault("LANGCHAIN_API_KEY", "test")
 
 import app.api as api
 

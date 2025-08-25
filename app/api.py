@@ -1,6 +1,20 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import os
+import time
 from fastapi.responses import HTMLResponse
 from typing import List
+
+from fastapi import (
+    FastAPI,
+    UploadFile,
+    File,
+    Depends,
+    HTTPException,
+    status,
+)
+from fastapi.security import APIKeyHeader
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, JSONResponse
 
 from .ingestion import read_file, chunk_document
 from .embeddings import embed_and_store
@@ -20,6 +34,51 @@ ALLOWED_MIME_TYPES = {
 
 app = FastAPI(title="DocuSec API")
 
+
+# Codespaces exposes secrets as environment variables. Use the LangChain
+# API key as the authentication token for protected endpoints.
+API_KEY = os.getenv("LANGCHAIN_API_KEY")
+if API_KEY is None:
+    raise RuntimeError("LANGCHAIN_API_KEY secret is not configured")
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+def get_api_key(api_key: str = Depends(api_key_header)) -> str:
+    """Validate provided API key."""
+    if api_key == API_KEY:
+        return api_key
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or missing API Key",
+    )
+
+
+class RateLimiterMiddleware(BaseHTTPMiddleware):
+    """Very simple in-memory rate limiter middleware."""
+
+    def __init__(
+        self, app: FastAPI, max_requests: int = 60, window_seconds: int = 60
+    ) -> None:
+        super().__init__(app)
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.requests: dict[str, list[float]] = {}
+
+    async def dispatch(self, request: Request, call_next):  # type: ignore[override]
+        now = time.time()
+        window_start = now - self.window_seconds
+        client_ip = request.client.host if request.client else "anonymous"
+        timestamps = self.requests.get(client_ip, [])
+        timestamps = [ts for ts in timestamps if ts > window_start]
+        if len(timestamps) >= self.max_requests:
+            return JSONResponse({"detail": "Too Many Requests"}, status_code=429)
+        timestamps.append(now)
+        self.requests[client_ip] = timestamps
+        return await call_next(request)
+
+
+app.add_middleware(RateLimiterMiddleware)
+
 # Global state for simple proof of concept
 vectorstore = None
 rag_chain = None
@@ -35,7 +94,9 @@ def root() -> dict:
 
 # Document ingestion endpoint: upload file, chunk, embed, build RAG
 @app.post("/ingest")
-async def ingest_document(file: UploadFile = File(...)) -> dict:
+async def ingest_document(
+    file: UploadFile = File(...), api_key: str = Depends(get_api_key)
+) -> dict:
     """Upload a document, chunk it, embed it and build the RAG pipeline."""
     global vectorstore, rag_chain
 
@@ -59,7 +120,7 @@ async def ingest_document(file: UploadFile = File(...)) -> dict:
 
 # RAG query endpoint: ask questions over ingested content
 @app.post("/query")
-async def query_rag(question: str) -> dict:
+async def query_rag(question: str, api_key: str = Depends(get_api_key)) -> dict:
     """Query the RAG pipeline for an answer."""
     if rag_chain is None:
         return {"error": "RAG pipeline not initialized"}
@@ -80,7 +141,9 @@ def get_frameworks() -> dict:
 
 # Control mapping endpoint: map text passages to framework controls
 @app.post("/map_controls")
-async def map_controls(documents: List[str]) -> dict:
+async def map_controls(
+    documents: List[str], api_key: str = Depends(get_api_key)
+) -> dict:
     """Map document text to controls in the loaded frameworks."""
     mapping = perform_control_mapping(frameworks, documents)
     return mapping
