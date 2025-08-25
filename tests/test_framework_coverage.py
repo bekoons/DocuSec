@@ -40,3 +40,32 @@ def test_check_framework_coverage():
         }
     ]
     assert store.queries == [("Requirement text", 1)]
+
+
+class DummyMetaDoc:
+    def __init__(self, metadata):
+        self.page_content = ""
+        self.metadata = metadata
+
+
+class DummyMetaStore:
+    def __init__(self) -> None:
+        self.queries = []
+
+    def similarity_search(self, query: str, k: int = 4):
+        self.queries.append((query, k))
+        return [DummyMetaDoc({"text": f"text for {query}"})]
+
+
+def test_check_framework_coverage_metadata_text():
+    store = DummyMetaStore()
+    controls = [
+        {
+            "framework_title": "ISO",
+            "control_number": "1",
+            "control_language": "Requirement text",
+        }
+    ]
+    results = check_framework_coverage(store, controls, k=1)
+    assert results[0]["policy_excerpts"] == ["text for Requirement text"]
+    assert store.queries == [("Requirement text", 1)]

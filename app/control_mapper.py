@@ -32,6 +32,18 @@ def check_framework_coverage(
         ``policy_excerpts`` strings.
     """
 
+    def _get_text(doc: Any) -> str:
+        """Return the most human readable text from a retrieved document."""
+
+        text = getattr(doc, "page_content", "") or ""
+        if not text and hasattr(doc, "metadata"):
+            meta = getattr(doc, "metadata") or {}
+            if isinstance(meta, dict):
+                text = meta.get("text", "") or meta.get("page_content", "")
+        if not isinstance(text, str):  # Fallback to string representation
+            text = str(text)
+        return text
+
     results: List[Dict[str, Any]] = []
     for control in controls:
         excerpts: List[str] = []
@@ -40,7 +52,7 @@ def check_framework_coverage(
                 docs = vectorstore.similarity_search(
                     control["control_language"], k=k
                 )
-                excerpts = [doc.page_content for doc in docs]
+                excerpts = [_get_text(doc) for doc in docs]
             except Exception:
                 excerpts = []
         results.append(
