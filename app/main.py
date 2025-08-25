@@ -10,6 +10,7 @@ from embeddings import (
 from rag_pipeline import build_rag, answer_query
 from framework_loader import load_frameworks
 from control_mapper import check_framework_coverage
+from utils import ensure_utf8
 from db import fetch_controls, store_csv_in_db
 from validation import validate_input
 
@@ -113,7 +114,9 @@ elif page == "Framework Coverage":
                         "Framework": c["framework_title"],
                         "Control Number": c["control_number"],
                         "Control Text": c["control_language"],
-                        "Policy Excerpts": "\n\n".join(c["policy_excerpts"]),
+                        "Policy Excerpts": "\n\n".join(
+                            ensure_utf8(e) for e in c["policy_excerpts"]
+                        ),
                     }
                     for c in coverage
                 ]
