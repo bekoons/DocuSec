@@ -6,18 +6,19 @@
 
 ## 🚧 Project Status
 
-> **PoC in Progress**  
-Designed for development in **GitHub Codespaces** using **Python 3.10+** and **Streamlit**.
+> **PoC in Progress**
+Designed for development in **GitHub Codespaces** using **Python 3.10+**, **Streamlit**, and **FastAPI**.
 
 ---
 
 ## 🎯 Key Features
 
-- ✅ Upload and parse security documentation (PDF, DOCX)
-- ✅ Index content in a vector store via RAG
-- ✅ Load and normalize multiple security frameworks
-- ✅ Cross-reference controls between frameworks
-- ✅ Query documents to extract compliance-relevant evidence
+- ✅ Upload and parse policy documents (PDF, DOCX, TXT)
+- ✅ Embed and persist policy content in FAISS vector stores
+- ✅ Load and extend security frameworks stored in SQLite
+- ✅ Build framework vector stores and check policy coverage
+- ✅ Query documents via a Retrieval-Augmented Generation pipeline
+- ✅ Access functionality through Streamlit and FastAPI interfaces
 
 ---
 
@@ -26,21 +27,25 @@ Designed for development in **GitHub Codespaces** using **Python 3.10+** and **S
 ```
 docusec/
 ├── app/
+│   ├── api.py                # FastAPI endpoints
 │   ├── main.py               # Streamlit app entrypoint
 │   ├── ingestion.py          # Document parsing and chunking
-│   ├── embeddings.py         # Embedding and vector store logic
-│   ├── rag_pipeline.py       # RAG pipeline logic (retrieval + LLM reasoning)
-│   ├── framework_loader.py   # Load ISO/NIST/SOC 2 control sets
-│   ├── control_mapper.py     # Match documents to control frameworks
-│   └── utils.py
+│   ├── embeddings.py         # Embedding and vector store utilities
+│   ├── rag_pipeline.py       # Retrieval + LLM reasoning
+│   ├── framework_loader.py   # Load security control sets
+│   ├── framework_vectors.py  # Build vector stores for frameworks
+│   ├── control_mapper.py     # Match documents to controls
+│   ├── db.py                 # SQLite helpers for frameworks
+│   ├── ui.py                 # Minimal HTML snippets
+│   └── utils.py              # Shared helpers
 ├── database/
 │   ├── schema.sql
 │   └── seed_frameworks.json
-├── vector_store/             # FAISS index files
+├── tests/                    # Unit tests
+├── vector_store/             # Persisted FAISS indexes (created at runtime)
 ├── .devcontainer/
 │   └── devcontainer.json     # Codespaces configuration
 ├── requirements.txt
-├── .env
 └── README.md
 ```
 
@@ -50,10 +55,16 @@ docusec/
 
 1. Open the repo in **GitHub Codespaces**
 2. The environment will auto-install dependencies from `requirements.txt`
-3. To run the app:
+3. Run the Streamlit interface:
 
 ```bash
 PYTHONPATH=$(pwd) streamlit run app/main.py
+```
+
+4. Or launch the FastAPI service:
+
+```bash
+PYTHONPATH=$(pwd) uvicorn app.api:app --reload
 ```
 
 ---
@@ -62,6 +73,7 @@ PYTHONPATH=$(pwd) streamlit run app/main.py
 
 - Python 3.10+
 - Streamlit
+- FastAPI
 - FAISS
 - LangChain
 - OpenAI API key (or compatible LLM provider)
