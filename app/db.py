@@ -3,6 +3,8 @@ import io
 import sqlite3
 from typing import Dict, Iterable, List
 
+from .validation import validate_input
+
 DB_PATH = "database/frameworks.db"
 
 
@@ -87,11 +89,17 @@ def store_csv_in_db(file_bytes: bytes, db_path: str = DB_PATH) -> int:
 
     rows: List[Dict[str, str]] = []
     for row in reader:
+        framework_title = row["framework_title"]
+        control_number = row["control_number"]
+        control_language = row["control_language"]
+        validate_input(framework_title)
+        validate_input(control_number)
+        validate_input(control_language)
         rows.append(
             {
-                "framework_title": row["framework_title"],
-                "control_number": row["control_number"],
-                "control_language": row["control_language"],
+                "framework_title": framework_title,
+                "control_number": control_number,
+                "control_language": control_language,
             }
         )
     return insert_controls(rows, db_path=db_path)
