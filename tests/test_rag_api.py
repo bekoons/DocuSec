@@ -58,7 +58,7 @@ def test_rag_query_returns_answer_within_token_limit(monkeypatch):
     def dummy_build_rag(_vectorstore):
         return DummyChain()
 
-    def dummy_embed_and_store(_chunks):
+    def dummy_embed_and_store(_chunks, _metadatas=None):
         class _Store:
             def as_retriever(self, search_kwargs=None):  # noqa: D401, ANN001
                 return self

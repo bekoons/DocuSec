@@ -27,8 +27,8 @@ if page == "Ingest Policy Document":
     uploaded_file = st.file_uploader("Upload a document", type=["pdf", "docx", "txt"])
     if uploaded_file is not None:
         text = read_file(uploaded_file.read())
-        chunks = chunk_document(text)
-        st.session_state.vectorstore = embed_and_store(chunks)
+        chunks, metadatas = chunk_document(text)
+        st.session_state.vectorstore = embed_and_store(chunks, metadatas)
         st.session_state.rag_chain = build_rag(st.session_state.vectorstore)
         st.success(f"Document ingested with {len(chunks)} chunks.")
 

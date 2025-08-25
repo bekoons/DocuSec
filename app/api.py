@@ -31,8 +31,8 @@ async def ingest_document(file: UploadFile = File(...)) -> dict:
     """Upload a document, chunk it, embed it and build the RAG pipeline."""
     global vectorstore, rag_chain
     text = read_file(await file.read())
-    chunks = chunk_document(text)
-    vectorstore = embed_and_store(chunks)
+    chunks, metadatas = chunk_document(text)
+    vectorstore = embed_and_store(chunks, metadatas)
     rag_chain = build_rag(vectorstore)
     return {"chunks": len(chunks)}
 

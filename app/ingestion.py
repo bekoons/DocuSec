@@ -1,6 +1,9 @@
-from typing import Callable, List
+"""Utilities for ingesting policy documents."""
+
+from typing import Callable, Dict, List, Tuple
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+import re
 
 
 def read_file(data: bytes) -> str:
@@ -14,9 +17,25 @@ def _default_length_function(text: str) -> int:
 
 
 def chunk_document(
-    text: str, chunk_size: int = 250, overlap: int = 50, length_func: Callable[[str], int] | None = None
-) -> List[str]:
-    """Split text into token-aware chunks."""
+    text: str,
+    chunk_size: int = 250,
+    overlap: int = 50,
+    length_func: Callable[[str], int] | None = None,
+) -> Tuple[List[str], List[Dict[str, str]]]:
+    """Split a policy document into chunks with policy-aware metadata.
+
+    The first line of a policy is treated as the policy title.  Additional
+    policies can be supplied in the same document by starting a new line that
+    contains the word ``"policy"``.  Each policy body is further split into
+    paragraphs, and long paragraphs are broken into token-aware subchunks.  A
+    metadata dictionary is produced for every chunk indicating the policy it was
+    derived from.
+
+    Returns a tuple ``(chunks, metadatas)`` where ``chunks`` is a list of text
+    snippets and ``metadatas`` contains a mapping with the originating policy
+    title for each chunk.
+    """
+
     if length_func is None:
         try:  # pragma: no cover - optional tokenizer dependency
             import tiktoken
@@ -31,5 +50,51 @@ def chunk_document(
         chunk_overlap=overlap,
         length_function=length_func,
     )
-    return splitter.split_text(text)
+
+    # Break the document into individual policy sections based on lines that
+    # look like policy titles.
+    policy_pattern = re.compile(r"policy", re.IGNORECASE)
+    lines = text.splitlines()
+    sections: List[Tuple[str, List[str]]] = []
+    title: str | None = None
+    buffer: List[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped and title is None:
+            # Skip leading blank lines
+            continue
+        if title is None:
+            # The first non-empty line is the initial policy title
+            title = stripped
+            continue
+
+        if policy_pattern.search(stripped):
+            # Encountered a new policy heading
+            sections.append((title, buffer))
+            title = stripped
+            buffer = []
+        else:
+            buffer.append(stripped)
+
+    if title is not None:
+        sections.append((title, buffer))
+
+    chunks: List[str] = []
+    metadatas: List[Dict[str, str]] = []
+    for policy_title, content_lines in sections:
+        if not content_lines:
+            chunks.append(policy_title)
+            metadatas.append({"policy": policy_title})
+            continue
+
+        paragraph_text = "\n".join(content_lines)
+        paragraphs = [p.strip() for p in re.split(r"\n\s*\n", paragraph_text) if p.strip()]
+        for paragraph in paragraphs:
+            for sub_chunk in splitter.split_text(paragraph):
+                chunk = f"{policy_title}\n\n{sub_chunk}".strip()
+                chunks.append(chunk)
+                metadatas.append({"policy": policy_title})
+
+    return chunks, metadatas
 
