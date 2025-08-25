@@ -15,7 +15,7 @@ Designed for development in **GitHub Codespaces** using **Python 3.10+**, **Stre
 
 ## 🎯 Key Features
 
-- ✅ Upload and parse policy documents (PDF, DOCX, TXT)
+- ✅ Upload and parse policy documents (PDF, DOCX, TXT) with automatic encoding normalization
 - ✅ Embed and persist policy content in FAISS vector stores
 - ✅ Load and extend security frameworks stored in SQLite
 - ✅ Build compliance control framework vector stores and check policy coverage
