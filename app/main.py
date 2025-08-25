@@ -7,11 +7,13 @@ from app.embeddings import (
     list_vectorstores,
     load_vectorstore,
 )
+
 from app.rag_pipeline import build_rag, answer_query
 from app.framework_loader import load_frameworks
 from app.control_mapper import check_framework_coverage
+from app.utils import ensure_utf8
 from app.db import fetch_controls, store_csv_in_db
-from app.validation import validate_input, validate_policy_name
+from app.validation import validate_input
 
 # Streamlit frontend reusing core FastAPI logic
 # This app leverages existing ingestion, RAG, and control mapping functions.
@@ -130,7 +132,9 @@ elif page == "Framework Coverage":
                         "Framework": c["framework_title"],
                         "Control Number": c["control_number"],
                         "Control Text": c["control_language"],
-                        "Policy Excerpts": "\n\n".join(c["policy_excerpts"]),
+                        "Policy Excerpts": "\n\n".join(
+                            ensure_utf8(e) for e in c["policy_excerpts"]
+                        ),
                     }
                     for c in coverage
                 ]
