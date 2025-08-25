@@ -1,6 +1,8 @@
 # 📄🔐 DocuSec
 
-**DocuSec** is a lightweight, modular proof-of-concept trust center designed to automate compliance mapping and evidence extraction from policy and procedural documentation. It uses a Retrieval-Augmented Generation (RAG) pipeline to semantically analyze uploaded documents and map them to multiple security frameworks (e.g., ISO 27001, NIST 800-53, SOC 2).
+**DocuSec** is a portable, lightweight, modular proof-of-concept designed to automate compliance mapping and evidence extraction from policy and procedural documentation. It uses a Retrieval-Augmented Generation (RAG) pipeline to semantically analyze uploaded documents and map them to multiple security frameworks (e.g., ISO 27001, NIST 800-53, SOC 2).
+
+After analyzing policy documents, control language is mapped to the relevant policy statements and displayed in a table showing potential control coverage evidence. 
 
 ---
 
@@ -16,7 +18,7 @@ Designed for development in **GitHub Codespaces** using **Python 3.10+**, **Stre
 - ✅ Upload and parse policy documents (PDF, DOCX, TXT) with automatic encoding normalization
 - ✅ Embed and persist policy content in FAISS vector stores
 - ✅ Load and extend security frameworks stored in SQLite
-- ✅ Build framework vector stores and check policy coverage
+- ✅ Build compliance control framework vector stores and check policy coverage
 - ✅ Query documents via a Retrieval-Augmented Generation pipeline
 - ✅ Access functionality through Streamlit and FastAPI interfaces
 
@@ -53,9 +55,12 @@ docusec/
 
 ## 💻 Getting Started in Codespaces
 
-1. Open the repo in **GitHub Codespaces**
-2. The environment will auto-install dependencies from `requirements.txt`
-3. Run the Streamlit interface:
+1. Clone the repo
+2. In **GitHub Codespaces**, create secrets `OPENAI_API_KEY`, `LANGCHAIN_API_KEY`,
+   and `LANGSMITH_API_KEY` for API access and authentication.
+3. Open the repo in **GitHub Codespaces**
+4. The environment will auto-install dependencies from `requirements.txt`
+5. Run the Streamlit interface:
 
 ```bash
 PYTHONPATH=$(pwd) streamlit run app/main.py
@@ -66,6 +71,25 @@ PYTHONPATH=$(pwd) streamlit run app/main.py
 ```bash
 PYTHONPATH=$(pwd) uvicorn app.api:app --reload
 ```
+
+### 🔐 Authentication
+
+The API expects the `LANGCHAIN_API_KEY` secret for authentication. Codespaces
+exposes this secret as an environment variable, so include its value in the
+`X-API-Key` header when calling protected endpoints (`/ingest`, `/query`,
+`/map_controls`).
+
+```bash
+PYTHONPATH=$(pwd) uvicorn app.api:app --reload
+```
+
+Example request:
+
+```bash
+curl -H "X-API-Key: $LANGCHAIN_API_KEY" -F "file=@doc.txt" http://localhost:8000/ingest
+```
+
+The application also includes a basic in-memory rate limiter allowing roughly 60 requests per minute per client.
 
 ---
 
@@ -103,5 +127,4 @@ pip install -r requirements.txt
 - Add control scoring confidence
 - Export mappings as CSV or audit-ready PDF
 - Admin role and version control for documents
-- Knowledge graph visualization
 - Integration with GRC tools or Trust Center platforms
