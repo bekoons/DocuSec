@@ -4,23 +4,64 @@ from typing import Callable, Dict, List, Tuple
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import re
+import io
 
 try:  # pragma: no cover - optional dependency
     from charset_normalizer import from_bytes
 except Exception:  # pragma: no cover - library may be absent
     from_bytes = None
 
+try:  # pragma: no cover - optional dependency
+    import fitz  # type: ignore
+except Exception:  # pragma: no cover - library may be absent
+    fitz = None  # type: ignore
 
-def read_file(data: bytes) -> str:
-    """Decode raw file bytes into text using detected encoding.
+try:  # pragma: no cover - optional dependency
+    from docx import Document  # type: ignore
+except Exception:  # pragma: no cover - library may be absent
+    Document = None  # type: ignore
 
-    The function attempts to detect the correct encoding of ``data`` using
-    :mod:`charset_normalizer`.  If detection fails or the library is not
-    available, the bytes are decoded as UTF-8 with errors ignored.  The
-    resulting string is always valid Unicode suitable for storing in the
-    vector store.
+
+def read_file(
+    data: bytes,
+    filename: str | None = None,
+    mime_type: str | None = None,
+) -> str:
+    """Decode raw file bytes into text using detected format.
+
+    ``filename`` or ``mime_type`` may be supplied to hint at the file format.
+    PDF documents are parsed with :mod:`PyMuPDF` and DOCX files via
+    :mod:`python-docx`.  Plain text inputs fall back to charset detection using
+    :mod:`charset_normalizer`.
     """
 
+    filetype = None
+    if mime_type:
+        mt = mime_type.lower()
+        if mt == "application/pdf":
+            filetype = "pdf"
+        elif mt == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+            filetype = "docx"
+        elif mt == "text/plain":
+            filetype = "text"
+    if filetype is None and filename:
+        name = filename.lower()
+        if name.endswith(".pdf"):
+            filetype = "pdf"
+        elif name.endswith(".docx"):
+            filetype = "docx"
+        elif name.endswith(".txt"):
+            filetype = "text"
+
+    if filetype == "pdf" and fitz is not None:  # pragma: no branch - depends on optional lib
+        with fitz.open(stream=data, filetype="pdf") as doc:
+            return "\n".join(page.get_text() for page in doc)
+
+    if filetype == "docx" and Document is not None:  # pragma: no branch - depends on optional lib
+        document = Document(io.BytesIO(data))
+        return "\n".join(p.text for p in document.paragraphs)
+
+    # Treat anything else as plain text
     if from_bytes is not None:
         try:
             result = from_bytes(data).best()
