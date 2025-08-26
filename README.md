@@ -128,3 +128,14 @@ pip install -r requirements.txt
 - Export mappings as CSV or audit-ready PDF
 - Admin role and version control for documents
 - Integration with GRC tools or Trust Center platforms
+
+---
+
+## ⚠️ Current Limitations and Production Considerations
+
+- **Ephemeral storage** – Uploaded documents and FAISS indexes exist only in memory; production use would require durable, secure storage layers.
+- **Basic security** – The prototype relies on a shared API key and simple rate limiting. A mature deployment needs robust authentication, authorization, and audit logging.
+- **Minimal resilience** – Error handling, logging, and monitoring are limited, and the app runs as a single process. Scaling, observability, and background processing should be added.
+- **External LLM costs** – Calls to external language models are uncached and can be slow or expensive. Provider abstraction, caching, or cost controls would be required.
+- **Prompt tuning** – Matching accuracy can be improved by refining prompts, using few-shot examples, and enabling chain-of-thought reasoning when comparing policy language to framework controls.
+- **Testing and CI/CD gaps** – Automated tests are sparse and no continuous integration pipeline exists. Comprehensive testing and deployment automation are needed before production.
