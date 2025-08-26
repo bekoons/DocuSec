@@ -102,3 +102,34 @@ def test_check_framework_coverage_limits_and_ranks():
         "mid: Requirement text",
     ]
     assert store.queries == [("Requirement text", 5)]
+
+
+class DummyMultiDoc:
+    def __init__(self, content: str) -> None:
+        self.page_content = content
+
+
+class DummyMultiStore:
+    def __init__(self) -> None:
+        self.queries = []
+
+    def similarity_search(self, query: str, k: int = 4):
+        self.queries.append((query, k))
+        text = (
+            "Intro text. Policy matches requirement exactly. More unrelated text."
+        )
+        return [DummyMultiDoc(text)]
+
+
+def test_check_framework_coverage_extracts_sentence():
+    store = DummyMultiStore()
+    controls = [
+        {
+            "framework_title": "ISO",
+            "control_number": "1",
+            "control_language": "requirement exactly",
+        }
+    ]
+    results = check_framework_coverage(store, controls, k=1)
+    assert results[0]["policy_excerpts"] == ["Policy matches requirement exactly."]
+    assert store.queries == [("requirement exactly", 1)]
