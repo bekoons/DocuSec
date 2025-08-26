@@ -1,4 +1,8 @@
-from typing import Dict, List, Any
+"""Utilities for mapping compliance controls to policy text."""
+
+from difflib import SequenceMatcher
+import re
+from typing import Any, Dict, List
 
 
 def map_controls(frameworks: Dict[str, Dict[str, str]], documents: List[str]) -> Dict[str, List[str]]:
@@ -44,6 +48,24 @@ def check_framework_coverage(
             text = str(text)
         return text
 
+    def _extract_quote(control_lang: str, policy_text: str) -> str:
+        """Return the most similar sentence from ``policy_text``.
+
+        The search is purely string based to ensure the output is an exact
+        excerpt from the policy document rather than an LLM interpretation.
+        """
+
+        sentences = re.split(r"(?<=[.!?])\s+", policy_text)
+        best_sentence = policy_text.strip()
+        best_ratio = 0.0
+        control_lower = control_lang.lower()
+        for sentence in sentences:
+            ratio = SequenceMatcher(None, control_lower, sentence.lower()).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_sentence = sentence.strip()
+        return best_sentence
+
     results: List[Dict[str, Any]] = []
     MAX_EXCERPTS = 3
     for control in controls:
@@ -61,7 +83,10 @@ def check_framework_coverage(
                     docs = vectorstore.similarity_search(
                         control["control_language"], k=k
                     )[:MAX_EXCERPTS]
-                excerpts = [_get_text(doc) for doc in docs]
+                excerpts = [
+                    _extract_quote(control["control_language"], _get_text(doc))
+                    for doc in docs
+                ]
             except Exception:
                 excerpts = []
         results.append(
