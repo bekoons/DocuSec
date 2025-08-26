@@ -16,20 +16,20 @@ def map_controls(frameworks: Dict[str, Dict[str, str]], documents: List[str]) ->
 def check_framework_coverage(
     vectorstore: Any,
     controls: List[Dict[str, str]],
-    k: int = 4,
+    k: int = 8,
 ) -> List[Dict[str, Any]]:
-    """Return policy excerpts that may satisfy each control's requirements.
+    """Return up to three policy excerpts that may satisfy each control.
 
     Args:
         vectorstore: Vector store containing policy document embeddings.
         controls: List of control dictionaries belonging to a framework.
-        k: Number of similar chunks to retrieve for each control.
+        k: Number of candidate chunks to retrieve for each control.
 
     Returns:
         A list where each item represents a control with possible policy
         excerpts that address it. Each item contains the ``framework_title``,
-        ``control_number``, ``control_language`` and a list of
-        ``policy_excerpts`` strings.
+        ``control_number``, ``control_language`` and a list of up to three
+        ``policy_excerpts`` strings ranked by relevance.
     """
 
     def _get_text(doc: Any) -> str:
@@ -45,13 +45,22 @@ def check_framework_coverage(
         return text
 
     results: List[Dict[str, Any]] = []
+    MAX_EXCERPTS = 3
     for control in controls:
         excerpts: List[str] = []
         if vectorstore is not None:
             try:
-                docs = vectorstore.similarity_search(
-                    control["control_language"], k=k
-                )
+                docs = []
+                if hasattr(vectorstore, "similarity_search_with_relevance_scores"):
+                    doc_scores = vectorstore.similarity_search_with_relevance_scores(
+                        control["control_language"], k=k
+                    )
+                    doc_scores.sort(key=lambda x: x[1], reverse=True)
+                    docs = [doc for doc, _ in doc_scores[:MAX_EXCERPTS]]
+                else:
+                    docs = vectorstore.similarity_search(
+                        control["control_language"], k=k
+                    )[:MAX_EXCERPTS]
                 excerpts = [_get_text(doc) for doc in docs]
             except Exception:
                 excerpts = []
