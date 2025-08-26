@@ -107,7 +107,11 @@ async def ingest_document(
     if len(contents) > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail="File too large. Limit 10MB.")
 
-    text = read_file(contents)
+    text = read_file(
+        contents,
+        filename=getattr(file, "filename", None),
+        mime_type=getattr(file, "content_type", None),
+    )
     try:
         validate_input(text)
     except ValueError as err:

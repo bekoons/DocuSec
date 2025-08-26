@@ -56,7 +56,11 @@ if page == "Ingest Policy Document":
         elif uploaded_file.size > MAX_FILE_SIZE:
             st.error("File too large. Limit 10MB.")
         else:
-            text = read_file(uploaded_file.read())
+            text = read_file(
+                uploaded_file.read(),
+                filename=uploaded_file.name,
+                mime_type=uploaded_file.type,
+            )
             try:
                 validate_input(text)
             except ValueError as err:
